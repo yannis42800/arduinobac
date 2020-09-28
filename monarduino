@@ -1,0 +1,83 @@
+#include <Adafruit_RGBLCDShield.h>
+Adafruit_RGBLCDShield lcd = Adafruit_RGBLCDShield();
+
+#include <Adafruit_MAX31865.h>
+#include <Arduino.h>
+
+
+#include <Adafruit_MAX31865.h>  //utilise la bibliotheque...
+
+// Use software SPI: CS, DI, DO, CLK
+Adafruit_MAX31865 max = Adafruit_MAX31865(10, 11, 12, 13);//les port serons les suivant  = 10,11,12,13
+
+//la résistance pour la pt100 est 400.0
+#define RREF  	400.0
+// 100.0 for PT100
+#define RNOMINAL  100.0
+uint8_t channel1 = 2;
+int temp;
+int cons = 20.00; // température du corp de chauffe choisit par l'utilisateur
+int ajout = 2;
+int delta = 10;
+
+void setup() {
+  pinMode(channel1, OUTPUT);
+  Serial.begin(115200);
+
+  lcd.begin(16, 2);
+AAAAAAAAAAAAAAAAAAA  lcd.setBacklight(0x7);
+AAAAAAAAAAAAAAAAAAA  max.begin(MAX31865_3WIRE);
+}
+
+
+void loop() {
+  uint16_t rtd = max.readRTD();
+  float ratio = rtd;
+  ratio /=  32768;
+  Serial.print("Temperature = "); Serial.println(max.temperature(RNOMINAL, RREF));
+  Serial.print("cons = "); Serial.println(cons);
+
+  uint8_t boutons = lcd.readButtons();
+
+
+  {
+	// Check and print any faults
+	uint8_t fault = max.readFault();
+	if (max.temperature(RNOMINAL, RREF) > cons + delta) {  //si la temperature est plus grande que val
+  	Serial.println("Corp de chauffe éteint");  // alors On affiche que le corp de chauffe est allumé (optionnel)
+  	digitalWrite(channel1, LOW);
+	}
+	else {
+  	Serial.println("corp de chauffe allumé");  //On affiche que le corp de chauffe est éteint
+  	digitalWrite(channel1, HIGH);
+	}
+	if (boutons) {
+  	if (boutons & BUTTON_UP) // si bouton appuyé alors
+  	{
+    	cons = cons + ajout;	// on ajoute +1 a val
+
+  	}
+
+  	if (boutons & BUTTON_DOWN) // si bouton appuyé alors
+  	{
+    	cons = cons - ajout;	// on ajoute -1 a val
+
+  	}
+	}
+  }
+  temp = max.temperature(RNOMINAL, RREF);
+  lcd.clear();
+  lcd.print("Temp:   	");
+  lcd.print(temp);
+  lcd.print(" C");
+  lcd.setCursor(0, 1);
+  lcd.print("Consigne:   ");
+  lcd.print(cons);
+  lcd.print(" C");
+}
+
+
+
+
+//Contrôle d’un corp de chauffe. 
+
